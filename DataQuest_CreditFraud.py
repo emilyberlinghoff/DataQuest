@@ -29,23 +29,6 @@ test_data = pd.read_csv("data_test.csv")
 #dropping all invalid rows
 train_data = train.dropna()
 
-#balancing data sheet
-# Count the number of rows where isFraud = 1 and where isFraud = 0
-fraud_count = train_data[train_data['isFraud'] == 1].shape[0]
-non_fraud_count = train_data[train_data['isFraud'] == 0].shape[0]
-
-
-rows_to_remove = non_fraud_count - fraud_count
-
-# remove excess
-if rows_to_remove > 0:
-    non_fraud_indices = train_data[train_data['isFraud'] == 0].index[:rows_to_remove]
-    train_data = train_data.drop(non_fraud_indices)
-if rows_to_remove < 0:
-    rows_to_remove = rows_to_remove * -1
-    fraud_indices = train_data[train_data['isFraud'] == 1].index[:rows_to_remove]
-    train_data = train_data.drop(fraud_indices)
-
 #Converting categories to numerical value
 categories = {
     "misc_net" : 1,
@@ -86,7 +69,7 @@ manip_data(train_data)
 manip_data(test_data)
 
 #Listing out variables used in training model
-list_var = ["category", "amount", "distance"]
+list_var = ["category", "amount", "cityPop"]
 
 #printing accuracy of model 
 print("Testing model accuracy")
@@ -99,5 +82,7 @@ for max_node in [10, 100, 1000, 10000]:
 model = DecisionTreeRegressor(max_leaf_nodes = 1000, random_state = 13)
 model.fit(train_x, train_y)
 test_data["isFraud"] = model.predict(test_data[list_var])
-print(test_data.head(30))
+#print(test_data.head(30))
+ 
+test_data.to_csv('test_predictions.csv', index=False)
  
