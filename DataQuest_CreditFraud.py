@@ -1,14 +1,13 @@
 
+#importing packages
 import pandas as pd
 import numpy as np
-import scipy.optimize as so
-import itertools as it
 
-
+#importing functions from sklearn.model
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 
 #function to train model
@@ -20,16 +19,17 @@ def get_mae(max_nodes, train_x, val_x, train_y, val_y):
     for item in model_Predictions:
         total += item
     results = total/len(model_Predictions)
-    MAE = [mean_absolute_error(val_y, model_Predictions), results]
-
+    MAE = [mean_absolute_error(val_y, model_Predictions), mean_squared_error(val_y, model_Predictions), results]
     return (MAE)
 
+#loding in csv files
 train = pd.read_csv("data_train.csv")
-test = pd.read_csv("data_test.csv")
+test_data = pd.read_csv("data_test.csv")
 
+#dropping all invalid rows
 train_data = train.dropna()
-test_data = test.dropna()
 
+#Converting categories to numerical value
 categories = {
     "misc_net" : 1,
     "shopping_net" : 2,
@@ -47,24 +47,39 @@ categories = {
     "travel" : 14
 } 
 
-train_data['transDate'] = pd.to_datetime(train_data['transDate'])
-train_data['year'] = train_data['transDate'].dt.year
-train_data['month'] = train_data['transDate'].dt.month
-train_data['day'] = train_data['transDate'].dt.day
+#making function to manipulating train_data variables
+def manip_data(data):
+    data['transDate'] = pd.to_datetime(data['transDate'])
+    data['year'] = data['transDate'].dt.year
+    data['month'] = data['transDate'].dt.month
+    data['day'] = data['transDate'].dt.day
 
-train_data["transDate_num"] = train_data['day']*10000 + train_data["month"]*100 + train_data["year"]
+    data["transDate_num"] = data['day']*10000 + data["month"]*100 + data["year"]
 
-train_data.category = [categories[item] for item in train_data.category]
+    data.category = [categories[item] for item in data.category]
 
-train_data["diff_Long"] = abs(train_data["longitude"] - train_data["merchLongitude"])
+    data["diff_Long"] = abs(data["longitude"] - data["merchLongitude"])
 
-train_data["diff_Lat"] = abs(train_data["longitude"] - train_data["merchLongitude"])
+    data["diff_Lat"] = abs(data["latitude"] - data["merchLatitude"])
 
-list_var = ["category", "amount", "diff_Long", "diff_Lat"]
+    data["distance"] = round(((data["diff_Long"]**2) + (data["diff_Lat"])**2)**0.5, 4)
+    
+#making and manipulating train_data and test_data variables
+manip_data(train_data)
+manip_data(test_data)
 
+#Listing out variables used in training model
+list_var = ["category", "amount", "distance"]
+
+#printing accuracy of model 
+print("Testing model accuracy")
 for max_node in [10, 100, 1000, 10000]:
     train_x, val_x, train_y, val_y = train_test_split(train_data[list_var], train_data["isFraud"], random_state=13)
     my_mae = get_mae(max_node, train_x, val_x, train_y, val_y)
-    print(f"Max nodes {max_node} \t\t Mean Abs Error: {my_mae[0]} \t\t Avg Predict: {my_mae[1]}")
+    print(f"Max nodes {max_node} \t Mean Abs Error: {my_mae[0]} \t Mean Sqr Error: {my_mae[1]} \t Avg Predict: {my_mae[2]}")
 
-
+#getting model and predicting fraud test_data
+model = DecisionTreeRegressor(max_leaf_nodes = 1000, random_state = 13)
+model.fit(train_x train_y)
+test_data["isFraud"] = model.predict(test_data[list_var])
+print(test_data.head(20))
